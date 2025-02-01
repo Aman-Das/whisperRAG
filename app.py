@@ -15,6 +15,51 @@ os.makedirs(LIVE_AUDIO_FOLDER, exist_ok=True)
 live_audio_file = os.path.join(LIVE_AUDIO_FOLDER, "live_audio.wav")
 audio_buffer = bytearray()  # Buffer to store live audio chunks
 
+class feature_extraction:
+    def _init_(self, sample_rate=16000, model_size='base'):
+        self.sample_rate = sample_rate
+        self.model = whisper.load_model(model_size)
+        self.keyword_extractor = KeyBERT(model='bert-base-multilingual-cased')
+        self.summarizer = pipeline("summarization")
+        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        self.knowledge_base = []
+        self.index = None
+
+    def load_audio(self, path):
+        signal, s_rate = librosa.load(path, sr=self.sample_rate)
+        return signal
+
+    def transcribe(self, audio):
+        trans_res = self.model.transcribe(audio)
+        return trans_res["text"]
+
+    def extract_keywords(self, transcript, top_n=5):
+        keywords = self.keyword_extractor.extract_keywords(transcript, top_n=top_n)
+        return [kw[0] for kw in keywords]
+
+    def build_knowledge_base(self, documents):
+        """Builds a vector-based knowledge base using FAISS."""
+        self.knowledge_base = documents
+        embeddings = [self.embedder.encode(doc, convert_to_tensor=False) for doc in documents]
+        d = len(embeddings[0])
+        self.index = faiss.IndexFlatL2(d)
+        self.index.add(np.array(embeddings, dtype=np.float32))
+
+    def retrieve_relevant_context(self, transcript):
+        """Retrieves relevant context from the FAISS knowledge base."""
+        if not self.index:
+            return ""
+        transcript_embedding = self.embedder.encode(transcript, convert_to_tensor=False).reshape(1, -1)
+        _, I = self.index.search(np.array(transcript_embedding, dtype=np.float32), 1)
+        return self.knowledge_base[I[0][0]] if I[0][0] < len(self.knowledge_base) else ""
+
+    def summarize(self, transcript):
+        """Summarizes the transcript with RAG-based context."""
+        context = self.retrieve_relevant_context(transcript)
+        input_text = context + " " + transcript if context else transcript
+        summary = self.summarizer(input_text, max_length=150, min_length=50, do_sample=False)
+        return summary[0]["summary_text"]
+
 @app.route("/upload_audio", methods=["POST"])
 def upload_audio():
     """Handles uploaded audio files and processes them."""
