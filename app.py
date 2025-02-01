@@ -16,7 +16,7 @@ live_audio_file = os.path.join(LIVE_AUDIO_FOLDER, "live_audio.wav")
 audio_buffer = bytearray()  # Buffer to store live audio chunks
 
 class feature_extraction:
-    def _init_(self, sample_rate=16000, model_size='base'):
+    def __init__(self, sample_rate=16000, model_size='base'):
         self.sample_rate = sample_rate
         self.model = whisper.load_model(model_size)
         self.keyword_extractor = KeyBERT(model='bert-base-multilingual-cased')
@@ -72,10 +72,6 @@ def upload_audio():
         # Process the uploaded file here if needed
         audio_data = file.read()
         print(f"Received file of size: {len(audio_data)} bytes")
-
-        # Here you can pass `audio_data` directly to your model instead of saving
-        # Example: model_output = model.predict(audio_data)
-        # If necessary, process the audio data and pass it to your model
         
         return jsonify({"message": "File uploaded successfully, processed data sent to model"})
     except Exception as e:
@@ -91,9 +87,14 @@ def handle_audio_chunk(audio_data):
         # Append the audio data chunk to the buffer
         audio_buffer.extend(audio_data)
         print(f"Received chunk: {len(audio_data)} bytes, Total buffer: {len(audio_buffer)} bytes")
-        
-        # Pass the buffer data directly to your model
-        # Example: model_output = model.predict(audio_buffer)
+ 
+
+        #LIVE AUDIO
+        signal = feature_extraction.load_audio(audio_buffer)
+        trans = feature_extraction.transcribe(signal)
+
+        #sending the transcript to the frontend
+        emit("transcript", {"text":trans})
         
     except Exception as e:
         print(f"Error processing live audio: {e}")
@@ -108,9 +109,11 @@ def stop_recording():
         return
 
     try:
-        # Process the accumulated audio directly into your model
-        # Example: model_output = model.predict(audio_buffer)
-        # You can also choose to reset or store the buffer temporarily for model evaluation
+        #proecess accumulated live audio
+        signal = feature_extraction.load_audio(audio_buffer)
+        trans = feature_extraction.transcribe(signal)
+
+        emit("final", {"text":trans})
 
         print(f"Processing accumulated audio of size: {len(audio_buffer)} bytes")
     
@@ -122,7 +125,7 @@ def stop_recording():
         print("Audio buffer reset.")
 
 if __name__ == "__main__":
-    print(f"Running Flask server")
+    print(f"Flask server started")
     socketio.run(app, host="0.0.0.0", port=5000, debug=True)
 
 
