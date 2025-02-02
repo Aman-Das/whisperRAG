@@ -3,7 +3,7 @@ import { useReactMediaRecorder } from "react-media-recorder";
 import axios from "axios";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:5000"); // Connect to Flask WebSocket
+const socket = io("http://localhost:5000");
 
 const SpeechRecorder = () => {
   const [isSystemAudio, setIsSystemAudio] = useState(false);
@@ -11,7 +11,7 @@ const SpeechRecorder = () => {
   const [audioFile, setAudioFile] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
-  const [loading, setLoading] = useState(false); // for showing a loading spinner during file upload
+  const [loading, setLoading] = useState(false);
   const mediaRecorderRef = useRef(null);
   const [stream, setStream] = useState(null);
 
@@ -30,18 +30,16 @@ const SpeechRecorder = () => {
       const userStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setStream(userStream);
 
-      // Determine supported MIME type
       const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/ogg";
-
       const mediaRecorder = new MediaRecorder(userStream, { mimeType });
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          socket.emit("audio_chunk", event.data); // Emit the audio chunk to the server
+          socket.emit("audio_chunk", event.data);
         }
       };
 
-      mediaRecorder.start(1000); // Send audio chunks every 1 second
+      mediaRecorder.start(1000);
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
     } catch (error) {
@@ -65,7 +63,7 @@ const SpeechRecorder = () => {
   };
 
   const uploadAudio = async () => {
-    if (loading) return; // Prevent multiple uploads at the same time
+    if (loading) return;
     setLoading(true);
 
     const formData = new FormData();
@@ -95,7 +93,7 @@ const SpeechRecorder = () => {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
+    <div style={{ textAlign: "center", marginTop: "50px", fontFamily: "Arial, sans-serif" }}>
       <h2>🎙 Real-Time Speech Summarizer</h2>
 
       {permissionDenied && <p style={{ color: "red" }}>⚠ Microphone permission denied. Enable it in browser settings.</p>}
@@ -107,9 +105,14 @@ const SpeechRecorder = () => {
 
       <br /><br />
 
-      {/* Streaming Controls */}
-      <button onClick={startStreaming} disabled={isRecording}>🔴 Start Live Recording</button>
-      <button onClick={stopStreaming} disabled={!isRecording}>⏹ Stop</button>
+      <div>
+        <button onClick={startStreaming} disabled={isRecording} style={buttonStyle}>
+          🔴 Start Live Recording
+        </button>
+        <button onClick={stopStreaming} disabled={!isRecording} style={buttonStyle}>
+          ⏹ Stop
+        </button>
+      </div>
 
       <br /><br />
 
@@ -117,23 +120,22 @@ const SpeechRecorder = () => {
         {isRecording ? "🔴 Streaming..." : "Idle"}
       </p>
 
-      {/* File Upload */}
-      <input type="file" accept="audio/*" onChange={handleFileChange} />
+      <br />
+
+      <input type="file" accept="audio/*" onChange={handleFileChange} style={fileInputStyle} />
 
       <br /><br />
 
-      {/* Upload Button */}
-      <button onClick={uploadAudio} disabled={!mediaBlobUrl && !audioFile || loading}>📤 Upload & Summarize</button>
+      <button onClick={uploadAudio} disabled={!mediaBlobUrl && !audioFile || loading} style={buttonStyle}>
+        📤 Upload & Summarize
+      </button>
 
-      {/* Loading Spinner */}
       {loading && <div>🔄 Uploading...</div>}
 
-      {/* Audio Player */}
       {mediaBlobUrl && <audio src={mediaBlobUrl} controls />}
 
       <br /><br />
 
-      {/* Summary Output */}
       {summary && (
         <div>
           <h3>📄 Summary:</h3>
@@ -144,7 +146,19 @@ const SpeechRecorder = () => {
   );
 };
 
+const buttonStyle = {
+  padding: "10px 20px",
+  margin: "5px",
+  fontSize: "16px",
+  cursor: "pointer",
+};
+
+const fileInputStyle = {
+  margin: "10px 0",
+};
+
 export default SpeechRecorder;
+
 
 
 
