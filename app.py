@@ -25,9 +25,13 @@ class feature_extraction:
         self.knowledge_base = []
         self.index = None
 
-    def load_audio(self, path):
-        signal, s_rate = librosa.load(path, sr=self.sample_rate)
+    def load_audio(self, audio_bytes):
+        #ACCEPT RAW BYTES NOT PATH
+        #converting the bytes to numpy array
+        audio_np = np.frombuffer(audio_bytes, dtype=np.int16)  
+        signal = librosa.resample(audio_np.astype(np.float32), orig_sr=44100, target_sr=self.sample_rate)
         return signal
+
 
     def transcribe(self, audio):
         trans_res = self.model.transcribe(audio)
@@ -78,6 +82,7 @@ def upload_audio():
         print(f"Error processing uploaded audio: {e}")
         return jsonify({"error": "Failed to process the audio file"}), 500
 
+
 @socketio.on("audio_chunk")
 def handle_audio_chunk(audio_data):
     """Receives and processes live audio chunks."""
@@ -92,6 +97,9 @@ def handle_audio_chunk(audio_data):
         #LIVE AUDIO
         signal = feature_extraction.load_audio(audio_buffer)
         trans = feature_extraction.transcribe(signal)
+
+        #logging to check if its working
+        print(trans)
 
         #sending the transcript to the frontend
         emit("transcript", {"text":trans})
@@ -112,6 +120,8 @@ def stop_recording():
         #proecess accumulated live audio
         signal = feature_extraction.load_audio(audio_buffer)
         trans = feature_extraction.transcribe(signal)
+
+        print(trans)
 
         emit("final", {"text":trans})
 
