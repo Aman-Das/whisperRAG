@@ -3,7 +3,7 @@ import { useReactMediaRecorder } from "react-media-recorder";
 import axios from "axios";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:5000");
+const socket = io("http://13.49.44.30:5000");
 
 const SpeechRecorder = () => {
   const [isSystemAudio, setIsSystemAudio] = useState(false);
