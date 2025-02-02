@@ -132,8 +132,8 @@ def stop_recording():
 
         #use instance instead
         #proecess accumulated live audio
-        signal = feature_extraction.load_audio(audio_buffer)
-        trans = feature_extraction.transcribe(signal)
+        signal = fe.load_audio(audio_buffer)
+        trans = fe.transcribe(signal)
 
         print(trans)
 

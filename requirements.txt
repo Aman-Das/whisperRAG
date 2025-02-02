@@ -1,0 +1,11 @@
+flask
+flask-cors
+flask-socketio
+numpy
+librosa
+transformers
+sentence-transformers
+faiss-cpu
+keybert
+openai-whisper
+torch
