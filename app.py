@@ -4,6 +4,7 @@ from flask_socketio import SocketIO, emit
 import os
 import wave
 import io
+import whisper
 
 app = Flask(__name__)
 CORS(app)
@@ -28,6 +29,7 @@ class feature_extraction:
     def load_audio(self, audio_bytes):
         #ACCEPT RAW BYTES NOT PATH
         #converting the bytes to numpy array
+        print(f"Received audio bytes: {len(audio_bytes)}")  # Debugging line
         audio_np = np.frombuffer(audio_bytes, dtype=np.int16)  
         signal = librosa.resample(audio_np.astype(np.float32), orig_sr=44100, target_sr=self.sample_rate)
         return signal
@@ -90,13 +92,20 @@ def handle_audio_chunk(audio_data):
 
     try:
         # Append the audio data chunk to the buffer
-        audio_buffer.extend(audio_data)
+        if isinstance(audio_data , bytes):
+            audio_buffer.extend(audio_data)
+        else:
+            print("Received non-byte audio data")
         print(f"Received chunk: {len(audio_data)} bytes, Total buffer: {len(audio_buffer)} bytes")
  
 
+        # Create an instance of feature_extraction
+        fe = feature_extraction()
+
+        # Process the live audio using the instance
         #LIVE AUDIO
-        signal = feature_extraction.load_audio(audio_buffer)
-        trans = feature_extraction.transcribe(signal)
+        signal = fe.load_audio(bytes(audio_buffer))
+        trans = fe.transcribe(signal)
 
         #logging to check if its working
         print(trans)
@@ -117,6 +126,11 @@ def stop_recording():
         return
 
     try:
+
+        # Create an instance of feature_extraction
+        fe = feature_extraction()
+
+        #use instance instead
         #proecess accumulated live audio
         signal = feature_extraction.load_audio(audio_buffer)
         trans = feature_extraction.transcribe(signal)
