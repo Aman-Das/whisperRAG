@@ -1,13 +1,81 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.container {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  background-color: #f4f4f4;
+  border-radius: 10px;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.header {
+  text-align: center;
+  font-size: 2em;
+  margin-bottom: 20px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.btn.primary {
+  background-color: red;
+  color: white;
+}
+
+.btn.secondary {
+  background-color: gray;
+  color: white;
+}
+
+.btn.upload {
+  background-color: green;
+  color: white;
+}
+
+.status {
+  text-align: center;
+  font-size: 1.2em;
+  margin-top: 10px;
+}
+
+.alert {
+  color: red;
+  text-align: center;
+}
+
+.summary-container,
+.keywords-container,
+.sentiment-container,
+.timestamps-container {
+  margin-top: 20px;
+}
+
+.keywords-container ul,
+.timestamps-container ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.keywords-container li,
+.timestamps-container li {
+  font-size: 1em;
+}
+
+.loading {
+  text-align: center;
+}
+
+.audio-player {
+  width: 100%;
+  margin-top: 20px;
 }

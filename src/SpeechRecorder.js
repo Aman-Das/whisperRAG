@@ -3,11 +3,14 @@ import { useReactMediaRecorder } from "react-media-recorder";
 import axios from "axios";
 import io from "socket.io-client";
 
-const socket = io("http://13.49.44.30:5000");
+const socket = io("http://localhost:5000");
 
 const SpeechRecorder = () => {
   const [isSystemAudio, setIsSystemAudio] = useState(false);
   const [summary, setSummary] = useState("");
+  const [keywords, setKeywords] = useState([]);
+  const [sentiment, setSentiment] = useState("");  // New state for sentiment
+  const [timestamps, setTimestamps] = useState([]);  // New state for timestamps
   const [audioFile, setAudioFile] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
@@ -22,6 +25,9 @@ const SpeechRecorder = () => {
   useEffect(() => {
     socket.on("summary_update", (data) => {
       setSummary((prev) => prev + " " + data.summary);
+      setKeywords(data.keywords);
+      setSentiment(data.sentiment);  // Update sentiment
+      setTimestamps(data.timestamps);  // Update timestamps
     });
   }, []);
 
@@ -85,6 +91,9 @@ const SpeechRecorder = () => {
       });
 
       setSummary(response.data.summary || "No summary available");
+      setKeywords(response.data.keywords || []);
+      setSentiment(response.data.sentiment || "No sentiment analysis available");
+      setTimestamps(response.data.timestamps || []);
     } catch (error) {
       console.error("Error uploading audio:", error);
     } finally {
@@ -93,74 +102,82 @@ const SpeechRecorder = () => {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px", fontFamily: "Arial, sans-serif" }}>
-      <h2>🎙 Real-Time Speech Summarizer</h2>
+    <div className="container">
+      <h2 className="header">🎙 Speech Summarizer</h2>
 
-      {permissionDenied && <p style={{ color: "red" }}>⚠ Microphone permission denied. Enable it in browser settings.</p>}
+      {permissionDenied && <p className="alert">⚠ Microphone permission denied. Enable it in browser settings.</p>}
 
-      <label>
+      <label className="checkbox-label">
         <input type="checkbox" checked={isSystemAudio} onChange={() => setIsSystemAudio(!isSystemAudio)} />
         Record System Audio
       </label>
 
-      <br /><br />
-
-      <div>
-        <button onClick={startStreaming} disabled={isRecording} style={buttonStyle}>
+      <div className="button-container">
+        <button onClick={startStreaming} disabled={isRecording} className="btn primary">
           🔴 Start Live Recording
         </button>
-        <button onClick={stopStreaming} disabled={!isRecording} style={buttonStyle}>
+        <button onClick={stopStreaming} disabled={!isRecording} className="btn secondary">
           ⏹ Stop
         </button>
       </div>
 
-      <br /><br />
-
-      <p style={{ color: isRecording ? "red" : "black" }}>
+      <p className={`status ${isRecording ? "recording" : "idle"}`}>
         {isRecording ? "🔴 Streaming..." : "Idle"}
       </p>
 
-      <br />
+      <input type="file" accept="audio/*" onChange={handleFileChange} className="file-input" />
 
-      <input type="file" accept="audio/*" onChange={handleFileChange} style={fileInputStyle} />
-
-      <br /><br />
-
-      <button onClick={uploadAudio} disabled={!mediaBlobUrl && !audioFile || loading} style={buttonStyle}>
+      <button onClick={uploadAudio} disabled={!mediaBlobUrl && !audioFile || loading} className="btn upload">
         📤 Upload & Summarize
       </button>
 
-      {loading && <div>🔄 Uploading...</div>}
+      {loading && <div className="loading">🔄 Uploading...</div>}
 
-      {mediaBlobUrl && <audio src={mediaBlobUrl} controls />}
+      {mediaBlobUrl && <audio src={mediaBlobUrl} controls className="audio-player" />}
 
-      <br /><br />
+      <div className="content-container">
+        {summary && (
+          <div className="summary-container">
+            <h3>📄 Summary:</h3>
+            <p>{summary}</p>
+          </div>
+        )}
 
-      {summary && (
-        <div>
-          <h3>📄 Summary:</h3>
-          <p>{summary}</p>
-        </div>
-      )}
+        {keywords.length > 0 && (
+          <div className="keywords-container">
+            <h3>🔑 Keywords:</h3>
+            <ul>
+              {keywords.map((keyword, index) => (
+                <li key={index}>{keyword}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {sentiment && (
+          <div className="sentiment-container">
+            <h3>💬 Sentiment Analysis:</h3>
+            <p>{sentiment}</p>
+          </div>
+        )}
+
+{timestamps.length > 0 && (
+  <div className="timestamps-container">
+    <h3>⏱ Timestamps:</h3>
+    <ul>
+      {timestamps.map((timestamp, index) => (
+        <li key={index}>
+          {timestamp.word} - {timestamp.timestamp}
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+      </div>
     </div>
   );
 };
 
-const buttonStyle = {
-  padding: "10px 20px",
-  margin: "5px",
-  fontSize: "16px",
-  cursor: "pointer",
-};
-
-const fileInputStyle = {
-  margin: "10px 0",
-};
-
 export default SpeechRecorder;
-
-
-
-
-
 

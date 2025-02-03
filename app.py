@@ -1,3 +1,4 @@
+import nltk
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -6,6 +7,13 @@ import numpy as np
 import librosa
 from vosk import Model, KaldiRecognizer
 from werkzeug.utils import secure_filename
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from textblob import TextBlob  # Sentiment analysis library
+
+# Initialize nltk resources
+nltk.download('punkt')
+nltk.download('stopwords')
 
 app = Flask(__name__)
 CORS(app)
@@ -50,6 +58,31 @@ class Transcriber:
         recognizer.AcceptWaveform(audio.tobytes())
         return recognizer.Result()
 
+    def extract_keywords(self, text):
+        """Extract keywords from the transcribed text using basic NLTK methods."""
+        # Tokenize the text and remove stop words
+        words = word_tokenize(text)
+        stop_words = set(stopwords.words("english"))
+        filtered_words = [word for word in words if word.isalnum() and word.lower() not in stop_words]
+        
+        # Optionally, we can add more sophisticated keyword extraction here
+        return filtered_words
+
+    def analyze_sentiment(self, text):
+        """Analyze sentiment of the transcribed text using TextBlob."""
+        blob = TextBlob(text)
+        sentiment = blob.sentiment.polarity  # Sentiment score between -1 (negative) and 1 (positive)
+        return sentiment
+
+    def extract_timestamped_words(self, audio):
+        """Simulate timestamped words based on the audio signal."""
+        # A simple approximation: this could be improved based on actual timing data
+        words = audio.split()  # Split transcription into words
+        timestamps = []
+        for i, word in enumerate(words):
+            timestamps.append({"word": word, "timestamp": i * 0.5})  # Rough estimate (every word 0.5 seconds apart)
+        return timestamps
+
 
 transcriber = Transcriber()
 
@@ -80,7 +113,17 @@ def handle_audio_chunk(audio_data):
                     transcription = recognizer.PartialResult()  # Intermediate words
 
                 print(transcription)  # Log transcription
-                emit("transcript", {"text": transcription})
+                # Extract keywords
+                keywords = transcriber.extract_keywords(transcription)
+                sentiment = transcriber.analyze_sentiment(transcription)
+                timestamps = transcriber.extract_timestamped_words(transcription)
+
+                emit("transcript", {
+                    "text": transcription,
+                    "keywords": keywords,
+                    "sentiment": sentiment,
+                    "timestamps": timestamps
+                })
 
                 audio_buffer = bytearray()  # Reset buffer after processing
 
@@ -105,7 +148,17 @@ def stop_recording():
         transcription = transcriber.transcribe(signal)
 
         print(transcription)
-        emit("final", {"text": transcription})
+        # Extract keywords
+        keywords = transcriber.extract_keywords(transcription)
+        sentiment = transcriber.analyze_sentiment(transcription)
+        timestamps = transcriber.extract_timestamped_words(transcription)
+
+        emit("final", {
+            "text": transcription,
+            "keywords": keywords,
+            "sentiment": sentiment,
+            "timestamps": timestamps
+        })
 
     except Exception as e:
         print(f"Error processing recorded audio: {e}")
@@ -113,6 +166,7 @@ def stop_recording():
     finally:
         audio_buffer = bytearray()  # Reset buffer after processing
         print("Audio buffer reset.")
+
 # Route for handling file uploads for audio files
 @app.route("/upload_audio", methods=["POST"])
 def upload_audio():
@@ -136,7 +190,17 @@ def upload_audio():
 
             transcription = transcriber.transcribe(audio_data)
 
-            return jsonify({"summary": transcription}), 200
+            # Extract keywords from transcription
+            keywords = transcriber.extract_keywords(transcription)
+            sentiment = transcriber.analyze_sentiment(transcription)
+            timestamps = transcriber.extract_timestamped_words(transcription)
+
+            return jsonify({
+                "summary": transcription,
+                "keywords": keywords,
+                "sentiment": sentiment,
+                "timestamps": timestamps
+            }), 200
 
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -153,4 +217,3 @@ def allowed_file(filename):
 if __name__ == "__main__":
     print("Flask server started")
     socketio.run(app, host="0.0.0.0", port=5000, debug=True)
-
